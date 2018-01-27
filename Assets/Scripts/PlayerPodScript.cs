@@ -5,25 +5,56 @@ public class PlayerPodScript : MonoBehaviour
 {
 	public float ForwardSpeed;
 	public float TurnSpeed;
+	public float SwingpostMaxDistance;
+	public float RopeThrowSpeed;
 
 	public GameObject[] SwingpostGameObjects;
 	public GameObject TargetUIGameObject;
 	
 	private GameObject _targetSwingpost;
+	private bool _targetChanged;
 	private SpriteRenderer _targetUiRenderer;
+	private GameObject _rope;
+	private SpriteRenderer _ropeRenderer;
+	private float _ropeInitialScale;
+	private bool _ropeIsActive;
+	private bool _ropeIsLocked;
+	private Vector2 _ropeCurrentEndPosition; //used for determining moveTowards
 
 	// Use this for initialization
 	void Start ()
 	{
+		
 		_targetUiRenderer = TargetUIGameObject.GetComponent<SpriteRenderer>();
 		_targetSwingpost = null;
+		_targetChanged = false;
 		RefreshTargetSwingpost();
+		_ropeIsActive = false;
+		_ropeIsLocked = false;
+
+		//get rope among our children
+		for (int i = 0; i < transform.childCount; ++i)
+		{
+			Transform child = transform.GetChild(i);
+			if (child.CompareTag("Rope"))
+			{
+				_rope = child.gameObject;
+				_ropeRenderer = _rope.GetComponent<SpriteRenderer>();
+				_ropeInitialScale = _ropeRenderer.size.y;
+				break;
+			}
+		}
 	}
 	
 	// Update is called once per frame
 	void Update ()
 	{
 		RefreshTargetSwingpost();
+
+		if (_targetChanged)
+		{
+			BreakRope();
+		}
 
 		//core movement phase
 		float playerMovement = ForwardSpeed * Time.deltaTime;
@@ -37,34 +68,131 @@ public class PlayerPodScript : MonoBehaviour
 			transform.Rotate(Vector3.forward, horizontalMoveInput * TurnSpeed * Time.deltaTime);
 		}
 
-		//TODO further arrange keys
+		if (_ropeIsActive)
+		{
+			if (_ropeIsLocked)
+			{
+				//rope is locked down, check for ninety degrees
+				//the degree between our vehicle and the rope should be less than 90 degrees
+				float angle = AngleBetweenVec2(_rope.transform.up, transform.up);
+
+				if (Mathf.Abs(angle) >= 90.0f)
+				{
+					//lock us down at 90!
+					if (angle > 0.0f)
+					{
+						transform.Rotate(Vector3.forward, 90.0f - angle);
+					}
+					else
+					{
+						transform.Rotate(Vector3.forward, -angle - 90.0f);
+					}
+				}
+			}
+			ExtendRope();
+		}
+
+		//TODO further arrange keys, having two keys might be problematic
 		if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
 		{
-			//TODO throw the rope if applicable
+			//Throw the rope if target is available and rope is present
+			if (_targetSwingpost != null && !_ropeIsActive)
+			{
+				ThrowRope();
+			}
+		}
+
+		//TODO make sure whether or not we should do it after we translate our vehicle, along with rope throwing itself these may move up
+		if (!Input.GetKey(KeyCode.DownArrow) && !Input.GetKey(KeyCode.S))
+		{
+			if (_ropeIsActive)
+			{
+				BreakRope();
+			}
+			_ropeCurrentEndPosition = transform.position;
 		}
 
 		//camera follows the player but does not rotate along with it
 		Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, Camera.main.transform.position.z);
 	}
 
+	private void ThrowRope()
+	{
+		ExtendRope();
+		_ropeRenderer.enabled = true;
+		_ropeIsActive = true;
+	}
+
+	private void ExtendRope()
+	{
+		Vector2 startPosition = transform.position;
+		Vector2 targetPosition = _targetSwingpost.transform.position;
+
+		//update rope end position
+		if (_ropeCurrentEndPosition == targetPosition)
+		{
+			_ropeIsLocked = true;
+		}
+		else
+		{
+			_ropeCurrentEndPosition = Vector2.MoveTowards(_ropeCurrentEndPosition, targetPosition, RopeThrowSpeed);
+		}
+
+		//determine difference between vehicle and rope end, use it to place rope onto position and rotate / scale it
+		Vector2 ropeVec = _ropeCurrentEndPosition - startPosition;
+		Vector2 ropeDir = ropeVec.normalized;
+		float angle = AngleBetweenVec2(_rope.transform.up, ropeDir);
+		_rope.transform.Rotate(Vector3.forward, angle);
+
+		_ropeRenderer.size = new Vector2(_ropeRenderer.size.x, ropeVec.magnitude);
+
+		_rope.transform.position = (_ropeCurrentEndPosition + startPosition) * 0.5f;
+	}
+
+	private void BreakRope()
+	{
+		_ropeIsActive = false;
+		_ropeIsLocked = false;
+		_ropeRenderer.enabled = false;
+		_ropeCurrentEndPosition = transform.position;
+		_ropeRenderer.size = new Vector2(_ropeRenderer.size.x, _ropeInitialScale);
+		_rope.transform.position = transform.position;
+	}
+
 	private void RefreshTargetSwingpost()
 	{
 		//check for distance to swingposts and get the closest target provided that there's no obstacle in between
-		
-		float shortestDistance = float.MaxValue;
+		GameObject selectedTarget = null;
+		float shortestDistance = SwingpostMaxDistance;
 		Assert.IsTrue(SwingpostGameObjects.Length > 0);
 		for (int i = 0; i < SwingpostGameObjects.Length; ++i)
 		{
-			float currentDistance = Vector2.Distance(SwingpostGameObjects[i].transform.position, transform.position);
-
+			Vector2 swingpostPosition = SwingpostGameObjects[i].transform.position;
+			float currentDistance = Vector2.Distance(swingpostPosition, transform.position);
+			
 			//TODO check that there's no obstacle in between
-			//TODO check that rope is throwable i.e. <90 degrees angle
-			//TODO check that we're within the range of a post
+			
+			//check for distance
 			if (currentDistance < shortestDistance)
 			{
-				shortestDistance = currentDistance;
-				_targetSwingpost = SwingpostGameObjects[i];
+				Vector2 ropeDir = (swingpostPosition - (Vector2) transform.position).normalized;
+				if ((_ropeIsActive && _targetSwingpost == SwingpostGameObjects[i]) || Mathf.Abs(AngleBetweenVec2(transform.up, ropeDir)) <= 90.0f)
+				{
+					//check that rope is throwable i.e. <90 degrees angle
+					shortestDistance = currentDistance;
+					selectedTarget = SwingpostGameObjects[i];
+				}
 			}
+		}
+
+		if (_targetSwingpost != selectedTarget)
+		{
+			_targetSwingpost = selectedTarget;
+			_targetChanged = true;
+		}
+		else
+		{
+			_targetChanged = false;
 		}
 
 		if (_targetSwingpost != null)
@@ -98,9 +226,9 @@ public class PlayerPodScript : MonoBehaviour
 		if (reboundDir != Vector2.zero)
 		{
 			float approachAngle = AngleBetweenVec2(playerMoveDir, wallNormal);
-			float angle = AngleBetweenVec2(playerMoveDir, reboundDir);
 			if (Mathf.Abs(approachAngle) > 90.0f)
 			{
+				float angle = AngleBetweenVec2(playerMoveDir, reboundDir);
 				transform.Rotate(Vector3.forward, angle);
 			}
 		}
