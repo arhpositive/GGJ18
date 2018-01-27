@@ -10,6 +10,11 @@ public class PlayerPodScript : MonoBehaviour
 
 	public GameObject[] SwingpostGameObjects;
 	public GameObject TargetUIGameObject;
+	public GameObject HitAnimGameObject;
+	public AudioClip ThrottleSound;
+	public AudioClip BrakeSound;
+
+	public int Score { get; private set; }
 	
 	private GameObject _targetSwingpost;
 	private bool _targetChanged;
@@ -21,10 +26,14 @@ public class PlayerPodScript : MonoBehaviour
 	private bool _ropeIsLocked;
 	private Vector2 _ropeCurrentEndPosition; //used for determining moveTowards
 
+	private AudioSource _currentAudioSource;
+	private MusicManager _musicManagerScript;
+	
+
 	// Use this for initialization
 	void Start ()
 	{
-		
+		Score = 0;
 		_targetUiRenderer = TargetUIGameObject.GetComponent<SpriteRenderer>();
 		_targetSwingpost = null;
 		_targetChanged = false;
@@ -44,6 +53,11 @@ public class PlayerPodScript : MonoBehaviour
 				break;
 			}
 		}
+
+		_currentAudioSource = gameObject.GetComponent<AudioSource>();
+		SwitchCarSound(ThrottleSound, 0.1f);
+
+		_musicManagerScript = Camera.main.GetComponent<MusicManager>();
 	}
 	
 	// Update is called once per frame
@@ -87,6 +101,12 @@ public class PlayerPodScript : MonoBehaviour
 					{
 						transform.Rotate(Vector3.forward, -angle - 90.0f);
 					}
+
+					if (BrakeSound != _currentAudioSource.clip)
+					{
+						SwitchCarSound(BrakeSound, 0.4f);
+					}
+					
 				}
 			}
 			ExtendRope();
@@ -157,6 +177,11 @@ public class PlayerPodScript : MonoBehaviour
 		_ropeCurrentEndPosition = transform.position;
 		_ropeRenderer.size = new Vector2(_ropeRenderer.size.x, _ropeInitialScale);
 		_rope.transform.position = transform.position;
+
+		if (ThrottleSound != _currentAudioSource.clip)
+		{
+			SwitchCarSound(ThrottleSound, 0.1f);
+		}
 	}
 
 	private void RefreshTargetSwingpost()
@@ -215,21 +240,46 @@ public class PlayerPodScript : MonoBehaviour
 		return Vector2.Angle(vec1, vec2) * sign;
 	}
 
+	private void SwitchCarSound(AudioClip soundEffect, float volume)
+	{
+		_currentAudioSource.Stop();
+		Assert.IsTrue(_currentAudioSource.clip != soundEffect);
+		_currentAudioSource.clip = soundEffect;
+		_currentAudioSource.volume = volume;
+		_currentAudioSource.Play();
+	}
+
 	void OnTriggerEnter2D(Collider2D other)
 	{
-		Vector2 wallNormal = other.transform.up;
-		Vector2 playerMoveDir = transform.up;
-
-		float dotProduct = Vector2.Dot(playerMoveDir, wallNormal);
-		Vector2 reboundDir = -2 * dotProduct * wallNormal + playerMoveDir;
-
-		if (reboundDir != Vector2.zero)
+		if (other.gameObject.CompareTag("Coin"))
 		{
-			float approachAngle = AngleBetweenVec2(playerMoveDir, wallNormal);
-			if (Mathf.Abs(approachAngle) > 90.0f)
+			//pick up coin
+			++Score;
+			_musicManagerScript.PlayPickupSound();
+			Destroy(other.gameObject);
+		}
+		else
+		{
+			//create hit animation
+			GameObject hitObject = Instantiate(HitAnimGameObject, transform.position, Quaternion.identity);
+			Animator hitAnim = hitObject.GetComponent<Animator>();
+			Destroy(hitObject, hitAnim.GetCurrentAnimatorStateInfo(0).length + 0.1f);
+
+			_musicManagerScript.PlayCrashSound();
+			Vector2 wallNormal = other.transform.up;
+			Vector2 playerMoveDir = transform.up;
+
+			float dotProduct = Vector2.Dot(playerMoveDir, wallNormal);
+			Vector2 reboundDir = -2 * dotProduct * wallNormal + playerMoveDir;
+
+			if (reboundDir != Vector2.zero)
 			{
-				float angle = AngleBetweenVec2(playerMoveDir, reboundDir);
-				transform.Rotate(Vector3.forward, angle);
+				float approachAngle = AngleBetweenVec2(playerMoveDir, wallNormal);
+				if (Mathf.Abs(approachAngle) > 90.0f)
+				{
+					float angle = AngleBetweenVec2(playerMoveDir, reboundDir);
+					transform.Rotate(Vector3.forward, angle);
+				}
 			}
 		}
 	}
