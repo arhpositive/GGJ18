@@ -15,6 +15,7 @@ public class MusicManager : MonoBehaviour
 	public AudioClip[] PickupSounds;
 	public AudioClip OpenGateSound;
 	public AudioClip[] CountdownSounds;
+	public AudioClip CrowdSound;
 	private AudioSource _currentAudioSource;
 
 	private void Awake()
@@ -26,6 +27,11 @@ public class MusicManager : MonoBehaviour
 		_currentAudioSource.clip = MusicList[randomIndex];
 		_currentAudioSource.loop = true;
 		_currentAudioSource.Play();
+	}
+
+	public void StopMusic()
+	{
+		_currentAudioSource.Stop();
 	}
 
 	public void PlayCrashSound()
@@ -51,5 +57,10 @@ public class MusicManager : MonoBehaviour
 	public void PlayGoSound()
 	{
 		_currentAudioSource.PlayOneShot(CountdownSounds[1]);
+	}
+
+	public void PlayCrowdSound()
+	{
+		_currentAudioSource.PlayOneShot(CrowdSound);
 	}
 }

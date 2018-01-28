@@ -183,6 +183,10 @@ MonoBehaviour:
   CountdownGameObject: {fileID: 0}
   MainMenuGameObject: {fileID: 0}
   CreditsGameObject: {fileID: 0}
+  TimerGameObject: {fileID: 0}
+  ScoreGameObject: {fileID: 0}
+  EndGameMenuObject: {fileID: 0}
+  RestartButton: {fileID: 0}
 --- !u!114 &114411178596258170
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -208,6 +212,7 @@ MonoBehaviour:
   CountdownSounds:
   - {fileID: 8300000, guid: 70a862f03fed49c45a3fb8e2db28a96f, type: 3}
   - {fileID: 8300000, guid: abf93ddcdbd1a3a4aa866bbc9d3fa5b4, type: 3}
+  CrowdSound: {fileID: 8300000, guid: 7bd8c0b4420f384408c49f26c8659a50, type: 3}
 --- !u!114 &114626875226400202
 MonoBehaviour:
   m_ObjectHideFlags: 1

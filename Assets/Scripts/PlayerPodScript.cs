@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.SceneManagement;
 
 public class PlayerPodScript : MonoBehaviour
 {
@@ -21,6 +22,8 @@ public class PlayerPodScript : MonoBehaviour
 
 	public int Score { get; private set; }
 	public float TimeSpent { get; private set; }
+	public int WallsHit { get; private set; }
+	public float AvgSpeed { get; private set; }
 
 	private GameObject[] _swingpostGameObjects;
 	private GameObject _targetSwingpost;
@@ -35,6 +38,7 @@ public class PlayerPodScript : MonoBehaviour
 	private bool _firstUpdate;
 	private float _startTime;
 	private float _endTime;
+	private int _updateCount;
 
 	private AudioSource _currentAudioSource;
 	private MusicManager _musicManagerScript;
@@ -43,6 +47,10 @@ public class PlayerPodScript : MonoBehaviour
 	void Start ()
 	{
 		Score = 0;
+		WallsHit = 0;
+		_updateCount = 0;
+
+		AvgSpeed = ForwardSpeed;
 		_targetUiRenderer = TargetUIGameObject.GetComponent<SpriteRenderer>();
 		_targetSwingpost = null;
 		_targetChanged = false;
@@ -74,7 +82,19 @@ public class PlayerPodScript : MonoBehaviour
 	// Update is called once per frame
 	void Update ()
 	{
+		float escapeInput = Input.GetAxisRaw("Escape");
+		if (Mathf.Approximately(escapeInput, 1.0f))
+		{
+			//restart on escape - start press
+			SceneManager.LoadScene(0);
+		}
+
 		if (Mathf.Approximately(Time.timeScale, 0.0f)) return;
+
+
+		float totalSpeedVar = AvgSpeed * _updateCount;
+		++_updateCount;
+		AvgSpeed = (totalSpeedVar + ForwardSpeed) / _updateCount;
 
 		if (_firstUpdate)
 		{
@@ -104,7 +124,6 @@ public class PlayerPodScript : MonoBehaviour
 		//core movement phase
 		float playerMovement = ForwardSpeed * Time.deltaTime;
 		transform.Translate(Vector3.up * playerMovement);
-		//TODO speed should include acceleration, deceleration
 
 		//rotational input
 		float horizontalMoveInput = -Input.GetAxisRaw("Horizontal");
@@ -151,8 +170,7 @@ public class PlayerPodScript : MonoBehaviour
 				ThrowRope();
 			}
 		}
-
-		//TODO make sure whether or not we should do it after we translate our vehicle, along with rope throwing itself these may move up
+		
 		if (!Input.GetKey(KeyCode.Joystick1Button0) && !Input.GetKey(KeyCode.S))
 		{
 			if (_ropeIsActive)
@@ -280,11 +298,17 @@ public class PlayerPodScript : MonoBehaviour
 		_currentAudioSource.Play();
 	}
 
+	private void TurnOffCarSound()
+	{
+		_currentAudioSource.Stop();
+	}
+
 	IEnumerator Fin()
 	{
 		yield return new WaitForSeconds(0.5f);
 		Time.timeScale = 0.0f;
-		//TODO display end game menu
+		TurnOffCarSound();
+		Camera.main.GetComponent<GameFlow>().EndGame(TimeSpent, Score, AvgSpeed, WallsHit); //TODO
 	}
 
 	void OnTriggerEnter2D(Collider2D other)
@@ -305,6 +329,7 @@ public class PlayerPodScript : MonoBehaviour
 		}
 		else
 		{
+			++WallsHit;
 			//create hit animation
 			GameObject hitObject = Instantiate(HitAnimGameObject, transform.position, Quaternion.identity);
 			Animator hitAnim = hitObject.GetComponent<Animator>();

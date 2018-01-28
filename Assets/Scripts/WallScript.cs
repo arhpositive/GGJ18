@@ -24,7 +24,6 @@ public class WallScript : MonoBehaviour
 	{
 		if (other.gameObject.CompareTag("Player") && _notCollided)
 		{
-			//TODO disable collisions for a given amount of time
 			_notCollided = false;
 			IEnumerator collisionCoroutine = OnCollisionWithPlayer();
 			StartCoroutine(collisionCoroutine);
