@@ -7,6 +7,8 @@ TagManager:
   - Swingpost
   - Rope
   - Coin
+  - Gate
+  - Fin
   layers:
   - Default
   - TransparentFX

@@ -13,6 +13,8 @@ public class MusicManager : MonoBehaviour
 	public AudioClip[] MusicList;
 	public AudioClip[] CrashSounds;
 	public AudioClip[] PickupSounds;
+	public AudioClip OpenGateSound;
+	public AudioClip[] CountdownSounds;
 	private AudioSource _currentAudioSource;
 
 	private void Awake()
@@ -34,5 +36,20 @@ public class MusicManager : MonoBehaviour
 	public void PlayPickupSound()
 	{
 		_currentAudioSource.PlayOneShot(PickupSounds[Random.Range(0, PickupSounds.Length)]);
+	}
+
+	public void PlayOpenGateSound()
+	{
+		_currentAudioSource.PlayOneShot(OpenGateSound);
+	}
+
+	public void PlayWaitSound()
+	{
+		_currentAudioSource.PlayOneShot(CountdownSounds[0]);
+	}
+
+	public void PlayGoSound()
+	{
+		_currentAudioSource.PlayOneShot(CountdownSounds[1]);
 	}
 }

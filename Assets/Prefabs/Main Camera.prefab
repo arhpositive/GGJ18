@@ -24,6 +24,8 @@ GameObject:
   - component: {fileID: 81068690549141094}
   - component: {fileID: 114411178596258170}
   - component: {fileID: 82885745788644312}
+  - component: {fileID: 114626875226400202}
+  - component: {fileID: 114403897271630846}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -38,7 +40,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1037568792528540}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalPosition: {x: 1, y: -3.5, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -167,6 +169,20 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
+--- !u!114 &114403897271630846
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1037568792528540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85831190b8300db49b97bdc73c065ba3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  CountdownGameObject: {fileID: 0}
+  MainMenuGameObject: {fileID: 0}
+  CreditsGameObject: {fileID: 0}
 --- !u!114 &114411178596258170
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -188,6 +204,28 @@ MonoBehaviour:
   - {fileID: 8300000, guid: b6b5fb87199634e449567cae97bcdc45, type: 3}
   - {fileID: 8300000, guid: 5cb81fea106be8f4cb136fcec6a823e2, type: 3}
   - {fileID: 8300000, guid: 29f7adf42b2dc2e469d92881d2a054a6, type: 3}
+  OpenGateSound: {fileID: 8300000, guid: 651aa82266ad6104f8312a4acda41870, type: 3}
+  CountdownSounds:
+  - {fileID: 8300000, guid: 70a862f03fed49c45a3fb8e2db28a96f, type: 3}
+  - {fileID: 8300000, guid: abf93ddcdbd1a3a4aa866bbc9d3fa5b4, type: 3}
+--- !u!114 &114626875226400202
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1037568792528540}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51c416722e9ad0a48b51c771136a9743, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  LevelCoinBanks:
+  - {fileID: 0}
+  - {fileID: 0}
+  LevelGates:
+  - {fileID: 0}
+  - {fileID: 0}
+  GateTextObject: {fileID: 0}
 --- !u!124 &124757586037831078
 Behaviour:
   m_ObjectHideFlags: 1

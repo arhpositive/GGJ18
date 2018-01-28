@@ -1,21 +1,28 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 using UnityEngine.Assertions;
 
 public class PlayerPodScript : MonoBehaviour
 {
 	public float ForwardSpeed;
+	public float MinSpeed;
+	public float MaxSpeed;
 	public float TurnSpeed;
 	public float SwingpostMaxDistance;
 	public float RopeThrowSpeed;
+	public float SwingSpeedIncrement;
+	public float CrashSpeedDecrement;
 
-	public GameObject[] SwingpostGameObjects;
+	
 	public GameObject TargetUIGameObject;
 	public GameObject HitAnimGameObject;
 	public AudioClip ThrottleSound;
 	public AudioClip BrakeSound;
 
 	public int Score { get; private set; }
-	
+	public float TimeSpent { get; private set; }
+
+	private GameObject[] _swingpostGameObjects;
 	private GameObject _targetSwingpost;
 	private bool _targetChanged;
 	private SpriteRenderer _targetUiRenderer;
@@ -25,10 +32,12 @@ public class PlayerPodScript : MonoBehaviour
 	private bool _ropeIsActive;
 	private bool _ropeIsLocked;
 	private Vector2 _ropeCurrentEndPosition; //used for determining moveTowards
+	private bool _firstUpdate;
+	private float _startTime;
+	private float _endTime;
 
 	private AudioSource _currentAudioSource;
 	private MusicManager _musicManagerScript;
-	
 
 	// Use this for initialization
 	void Start ()
@@ -37,9 +46,11 @@ public class PlayerPodScript : MonoBehaviour
 		_targetUiRenderer = TargetUIGameObject.GetComponent<SpriteRenderer>();
 		_targetSwingpost = null;
 		_targetChanged = false;
-		RefreshTargetSwingpost();
+		
 		_ropeIsActive = false;
 		_ropeIsLocked = false;
+
+		_swingpostGameObjects = GameObject.FindGameObjectsWithTag("Swingpost");
 
 		//get rope among our children
 		for (int i = 0; i < transform.childCount; ++i)
@@ -55,14 +66,34 @@ public class PlayerPodScript : MonoBehaviour
 		}
 
 		_currentAudioSource = gameObject.GetComponent<AudioSource>();
-		SwitchCarSound(ThrottleSound, 0.1f);
-
 		_musicManagerScript = Camera.main.GetComponent<MusicManager>();
+
+		_firstUpdate = true;
 	}
 	
 	// Update is called once per frame
 	void Update ()
 	{
+		if (Mathf.Approximately(Time.timeScale, 0.0f)) return;
+
+		if (_firstUpdate)
+		{
+			_startTime = Time.time;
+			_endTime = 0.0f;
+			SwitchCarSound(ThrottleSound, 0.2f);
+			_firstUpdate = false;
+		}
+
+		if (Mathf.Approximately(_endTime, 0.0f))
+		{
+			TimeSpent = Time.time - _startTime;
+		}
+		else
+		{
+			TimeSpent = _endTime - _startTime;
+		}
+		
+
 		RefreshTargetSwingpost();
 
 		if (_targetChanged)
@@ -106,14 +137,13 @@ public class PlayerPodScript : MonoBehaviour
 					{
 						SwitchCarSound(BrakeSound, 0.4f);
 					}
-					
+					ForwardSpeed = Mathf.Clamp(ForwardSpeed + (SwingSpeedIncrement * Time.deltaTime), MinSpeed, MaxSpeed);
 				}
 			}
 			ExtendRope();
 		}
-
-		//TODO further arrange keys, having two keys might be problematic
-		if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+		
+		if (Input.GetKeyDown(KeyCode.Joystick1Button0) || Input.GetKeyDown(KeyCode.S))
 		{
 			//Throw the rope if target is available and rope is present
 			if (_targetSwingpost != null && !_ropeIsActive)
@@ -123,7 +153,7 @@ public class PlayerPodScript : MonoBehaviour
 		}
 
 		//TODO make sure whether or not we should do it after we translate our vehicle, along with rope throwing itself these may move up
-		if (!Input.GetKey(KeyCode.DownArrow) && !Input.GetKey(KeyCode.S))
+		if (!Input.GetKey(KeyCode.Joystick1Button0) && !Input.GetKey(KeyCode.S))
 		{
 			if (_ropeIsActive)
 			{
@@ -180,7 +210,7 @@ public class PlayerPodScript : MonoBehaviour
 
 		if (ThrottleSound != _currentAudioSource.clip)
 		{
-			SwitchCarSound(ThrottleSound, 0.1f);
+			SwitchCarSound(ThrottleSound, 0.2f);
 		}
 	}
 
@@ -189,10 +219,10 @@ public class PlayerPodScript : MonoBehaviour
 		//check for distance to swingposts and get the closest target provided that there's no obstacle in between
 		GameObject selectedTarget = null;
 		float shortestDistance = SwingpostMaxDistance;
-		Assert.IsTrue(SwingpostGameObjects.Length > 0);
-		for (int i = 0; i < SwingpostGameObjects.Length; ++i)
+		Assert.IsTrue(_swingpostGameObjects.Length > 0);
+		for (int i = 0; i < _swingpostGameObjects.Length; ++i)
 		{
-			Vector2 swingpostPosition = SwingpostGameObjects[i].transform.position;
+			Vector2 swingpostPosition = _swingpostGameObjects[i].transform.position;
 			float currentDistance = Vector2.Distance(swingpostPosition, transform.position);
 			
 			//TODO check that there's no obstacle in between
@@ -201,11 +231,12 @@ public class PlayerPodScript : MonoBehaviour
 			if (currentDistance < shortestDistance)
 			{
 				Vector2 ropeDir = (swingpostPosition - (Vector2) transform.position).normalized;
-				if ((_ropeIsActive && _targetSwingpost == SwingpostGameObjects[i]) || Mathf.Abs(AngleBetweenVec2(transform.up, ropeDir)) <= 90.0f)
+				if ((_ropeIsActive && _targetSwingpost == _swingpostGameObjects[i]) || 
+					(!_ropeIsActive && Mathf.Abs(AngleBetweenVec2(transform.up, ropeDir)) <= 90.0f))
 				{
 					//check that rope is throwable i.e. <90 degrees angle
 					shortestDistance = currentDistance;
-					selectedTarget = SwingpostGameObjects[i];
+					selectedTarget = _swingpostGameObjects[i];
 				}
 			}
 		}
@@ -249,6 +280,13 @@ public class PlayerPodScript : MonoBehaviour
 		_currentAudioSource.Play();
 	}
 
+	IEnumerator Fin()
+	{
+		yield return new WaitForSeconds(0.5f);
+		Time.timeScale = 0.0f;
+		//TODO display end game menu
+	}
+
 	void OnTriggerEnter2D(Collider2D other)
 	{
 		if (other.gameObject.CompareTag("Coin"))
@@ -257,6 +295,13 @@ public class PlayerPodScript : MonoBehaviour
 			++Score;
 			_musicManagerScript.PlayPickupSound();
 			Destroy(other.gameObject);
+		}
+		else if (other.gameObject.CompareTag("Fin"))
+		{
+			//fin :)
+			_endTime = Time.time;
+			IEnumerator finCoroutine = Fin();
+			StartCoroutine(finCoroutine);
 		}
 		else
 		{
@@ -281,6 +326,8 @@ public class PlayerPodScript : MonoBehaviour
 					transform.Rotate(Vector3.forward, angle);
 				}
 			}
+
+			ForwardSpeed = Mathf.Clamp(ForwardSpeed - CrashSpeedDecrement, MinSpeed, MaxSpeed);
 		}
 	}
 }

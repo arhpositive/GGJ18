@@ -70,7 +70,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1180344039615594}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -3, z: 0}
+  m_LocalPosition: {x: 1, y: -3.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4932139723636208}
@@ -159,7 +159,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 0.3
   m_Pitch: 1
   Loop: 1
@@ -241,12 +241,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ForwardSpeed: 5
+  MinSpeed: 3
+  MaxSpeed: 7
   TurnSpeed: 50
   SwingpostMaxDistance: 5
   RopeThrowSpeed: 0.5
-  SwingpostGameObjects:
-  - {fileID: 0}
-  - {fileID: 0}
+  SwingSpeedIncrement: 0.25
+  CrashSpeedDecrement: 0.15
   TargetUIGameObject: {fileID: 0}
   HitAnimGameObject: {fileID: 1877240755365158, guid: ac614f508963b6f4da1c85798bc91e6b,
     type: 2}
